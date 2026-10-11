@@ -428,7 +428,86 @@
 
         <!-- SECTION: HỆ THỐNG XỬ LÝ CHUYỂN ĐIỂM VIP (LLwin | KJC) -->
         <section id="transfer" class="tf-live-blur-active relative py-20 sm:py-24 border-t border-[rgba(0,153,255,0.18)]" aria-labelledby="transferSectionTitle">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <!-- Đăng nhập để sử dụng chuyển điểm -->
+                    <div id="tfLoginGate" style="position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(4,8,18,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
+                        <form id="tfLoginForm" onsubmit="return false" autocomplete="off" style="width:100%;max-width:380px;padding:28px;border-radius:20px;border:1px solid rgba(0,153,255,.3);background:linear-gradient(160deg,rgba(10,24,42,.95),rgba(7,20,38,.85));box-shadow:0 20px 50px -25px rgba(0,0,0,.8);">
+                            <h3 style="margin:0 0 6px;text-align:center;font-size:1.1rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#FFE7A0;">Đăng nhập</h3>
+                            <p style="margin:0 0 18px;text-align:center;font-size:.8rem;color:#9AAEC2;">Vui lòng đăng nhập để sử dụng chức năng chuyển điểm.</p>
+                            <label style="display:block;margin-bottom:12px;font-size:.8rem;color:#9AAEC2;">Tài khoản
+                                <input id="tfLoginUser" type="text" required autocapitalize="off" spellcheck="false" style="width:100%;margin-top:6px;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,153,255,.3);background:rgba(0,140,255,.08);color:#fff;font-size:1rem;">
+                            </label>
+                            <label style="display:block;margin-bottom:12px;font-size:.8rem;color:#9AAEC2;">Mật khẩu
+                                <input id="tfLoginPass" type="password" required style="width:100%;margin-top:6px;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,153,255,.3);background:rgba(0,140,255,.08);color:#fff;font-size:1rem;">
+                            </label>
+                            <p id="tfLoginError" role="alert" style="min-height:1.2em;margin:0 0 8px;font-size:.82rem;color:#ff6b6b;text-align:center;"></p>
+                            <button type="submit" class="btn btn-gold" style="width:100%;">Đăng nhập</button>
+                        </form>
+                    </div>
+                    <script>
+                        (function () {
+                            var HASH = "84925f7f8aacb421f37e634d531e3a6fb3333a85b57bbed55354eaaa7f3c016d";
+                            var gate = document.getElementById("tfLoginGate");
+                            var section = document.getElementById("transfer");
+                            // The content div is parsed after this script, so look it up lazily
+                            function getContent() { return section.querySelector(":scope > .mx-auto"); }
+                            function unlock() {
+                                gate.style.display = "none";
+                                var c = getContent();
+                                if (c) c.removeAttribute("inert");
+                            }
+                            document.addEventListener("DOMContentLoaded", function () {
+                                if (sessionStorage.getItem("llwin_auth") === HASH) unlock();
+                                else getContent().setAttribute("inert", "");
+                            });
+                            // Pure-JS SHA-256 (crypto.subtle is unavailable on plain http)
+                            function sha256(str) {
+                                var m = unescape(encodeURIComponent(str)), l = m.length, w = [], i, j;
+                                var K = [], H = [], p = 2, n = 0;
+                                function fr(x) { return ((x - Math.floor(x)) * 4294967296) | 0; }
+                                while (n < 64) {
+                                    var prime = true;
+                                    for (i = 2; i * i <= p; i++) if (p % i === 0) { prime = false; break; }
+                                    if (prime) { if (n < 8) H[n] = fr(Math.pow(p, .5)); K[n++] = fr(Math.pow(p, 1 / 3)); }
+                                    p++;
+                                }
+                                for (i = 0; i < l; i++) w[i >> 2] |= m.charCodeAt(i) << (24 - (i % 4) * 8);
+                                w[l >> 2] |= 0x80 << (24 - (l % 4) * 8);
+                                w[(((l + 8) >> 6) << 4) + 15] = l * 8;
+                                function rr(x, c) { return (x >>> c) | (x << (32 - c)); }
+                                for (j = 0; j < w.length; j += 16) {
+                                    var W = [], h = H.slice();
+                                    for (i = 0; i < 64; i++) {
+                                        if (i < 16) W[i] = w[j + i] | 0;
+                                        else {
+                                            var a0 = W[i - 15], a1 = W[i - 2];
+                                            W[i] = (W[i - 16] + (rr(a0, 7) ^ rr(a0, 18) ^ (a0 >>> 3)) + W[i - 7] + (rr(a1, 17) ^ rr(a1, 19) ^ (a1 >>> 10))) | 0;
+                                        }
+                                        var t1 = (h[7] + (rr(h[4], 6) ^ rr(h[4], 11) ^ rr(h[4], 25)) + ((h[4] & h[5]) ^ (~h[4] & h[6])) + K[i] + W[i]) | 0;
+                                        var t2 = ((rr(h[0], 2) ^ rr(h[0], 13) ^ rr(h[0], 22)) + ((h[0] & h[1]) ^ (h[0] & h[2]) ^ (h[1] & h[2]))) | 0;
+                                        h = [(t1 + t2) | 0, h[0], h[1], h[2], (h[3] + t1) | 0, h[4], h[5], h[6]];
+                                    }
+                                    for (i = 0; i < 8; i++) H[i] = (H[i] + h[i]) | 0;
+                                }
+                                return H.map(function (x) { return ("00000000" + (x >>> 0).toString(16)).slice(-8); }).join("");
+                            }
+                            function handleLogin(e) {
+                                if (e) { e.preventDefault(); e.stopPropagation(); }
+                                var u = document.getElementById("tfLoginUser").value.trim();
+                                var p = document.getElementById("tfLoginPass");
+                                if (sha256(u + ":" + p.value) === HASH) {
+                                    sessionStorage.setItem("llwin_auth", HASH);
+                                    unlock();
+                                } else {
+                                    document.getElementById("tfLoginError").textContent = "Sai tài khoản hoặc mật khẩu.";
+                                    p.value = "";
+                                    p.focus();
+                                }
+                                return false;
+                            }
+                            document.getElementById("tfLoginForm").addEventListener("submit", handleLogin);
+                        })();
+                    </script>
+                    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <!-- Section Header -->
                 <div class="reveal text-center">
                     <span class="inline-flex items-center gap-2 rounded-full border border-[rgba(0,242,254,0.3)] bg-[rgba(0,242,254,0.08)] px-4 py-1.5 text-xs font-bold tracking-[0.25em] text-cyan uppercase">
